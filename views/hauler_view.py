@@ -1,5 +1,7 @@
 import sqlite3
 import json
+import requests
+import random
 
 def update_hauler(id, hauler_data):
     with sqlite3.connect("./shipping.db") as conn:
@@ -83,3 +85,23 @@ def retrieve_hauler(pk):
         serialized_hauler = json.dumps(dict(query_results))
 
     return serialized_hauler
+
+def create_hauler(hauler_data):
+    with sqlite3.connect("./shipping.db") as conn:    
+        # Query docks directly from the database
+        db_cursor = conn.cursor()
+        db_cursor.execute("SELECT id FROM Dock")
+        dock_ids = [row[0] for row in db_cursor.fetchall()]
+        random_dock_id = random.choice(dock_ids)
+
+        db_cursor.execute(
+            """
+            INSERT INTO Hauler (name, dock_id)
+            VALUES (?, ?)
+            """,
+            (hauler_data['name'], random_dock_id)
+        )
+        new_id = db_cursor.lastrowid
+        conn.commit()
+
+    return new_id if new_id else False

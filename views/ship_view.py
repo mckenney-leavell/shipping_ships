@@ -1,5 +1,7 @@
 import sqlite3
 import json
+import requests
+import random
 
 def update_ship(id, ship_data):
     with sqlite3.connect("./shipping.db") as conn:
@@ -83,3 +85,23 @@ def retrieve_ship(pk):
         serialized_ship = json.dumps(dictionary_version_of_object)
 
     return serialized_ship
+
+def create_ship(ship_data):
+    with sqlite3.connect("./shipping.db") as conn:    
+        # Query docks directly from the database
+        db_cursor = conn.cursor()
+        db_cursor.execute("SELECT id FROM Hauler")
+        hauler_ids = [row[0] for row in db_cursor.fetchall()]
+        random_hauler_id = random.choice(hauler_ids)
+
+        db_cursor.execute(
+            """
+            INSERT INTO Ship (name, hauler_id)
+            VALUES (?, ?)
+            """,
+            (ship_data['name'], random_hauler_id)
+        )
+        new_id = db_cursor.lastrowid
+        conn.commit()
+
+    return new_id if new_id else False
