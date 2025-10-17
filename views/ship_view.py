@@ -60,44 +60,106 @@ def list_ships(url):
             JOIN Hauler h
                 ON h.id = s.hauler_id
             """)
+            query_results = db_cursor.fetchall()
+
+            # Initialize an empty list and then add each dictionary to it
+            ships=[]
+            for row in query_results:
+                # ships.append(dict(row))
+                hauler = {
+                    "id": row['haulerId'],
+                    "name": row['haulerName'],
+                    "dock_id": row["dock_id"]
+                }
+                ship = {
+                    "id": row['id'],
+                    "name": row['name'],
+                    "hauler_id": row["hauler_id"],
+                    "hauler": hauler
+                }
+                ships.append(ship)
+                serialized_ships = json.dumps(ships)
+
         # Write the SQL query to get the information you want
-        else: db_cursor.execute("""
-        SELECT
-            *
-        FROM Ship s
-        """)
-        query_results = db_cursor.fetchall()
+        else:
+            db_cursor.execute("""
+                SELECT
+                    *
+                FROM Ship s
+                """)
+            query_results = db_cursor.fetchall()
 
-        # Initialize an empty list and then add each dictionary to it
-        ships=[]
-        for row in query_results:
-            ships.append(dict(row))
-
-        # Serialize Python list to JSON encoded string
-        serialized_ships = json.dumps(ships)
+            # Initialize an empty list and then add each dictionary to it
+            ships=[]
+            for row in query_results:
+                ships.append(dict(row))
+            # Serialize Python list to JSON encoded string
+            serialized_ships = json.dumps(ships)
 
     return serialized_ships
 
-def retrieve_ship(pk):
-    # Open a connection to the database
+def retrieve_ship(url):
+    # Opens a connection to the database
+    # 'with' automatically closes database connection when you're done, even if an error occurs
+    # conn is a connection object - like opening a door to the database
     with sqlite3.connect("./shipping.db") as conn:
+        # changes how database returns data
+        # instead of tuples, sqlite3.Row allows you to access data like a dictionary using column names
+            #search for row["name"] instead of row[1]
         conn.row_factory = sqlite3.Row
+        # cursor is like a pointer or tool that lets you actually execute SQL commands and fetch results like SELECT, INSERT, UPDATE, etc.
         db_cursor = conn.cursor()
+        query_params = url["query_params"]
+        pk = url["pk"]
+        expand_string = "_expand"
+
+        if expand_string in query_params:
+            db_cursor.execute("""
+                SELECT
+                    s.id,
+                    s.name,
+                    s.hauler_id,
+                    h.id haulerId,
+                    h.name haulerName,
+                    h.dock_id
+                FROM Ship s
+                JOIN Hauler h
+                    ON h.id = s.hauler_id
+                WHERE s.id = ?
+                """, ((pk,)))
+            row = db_cursor.fetchone()
+            # for row in query_results:
+            hauler = {
+                "id": row['haulerId'],
+                "name": row['haulerName'],
+                "dock_id": row["dock_id"]
+            }
+            ship = {
+                "id": row['id'],
+                "name": row['name'],
+                "hauler_id": row["hauler_id"],
+                "hauler": hauler
+            }
+            #     ship_arr.append(ship)
+            # dictionary_version_of_object = dict(row)
+            # dictionary_version_of_object = dict(query_results)
+            serialized_ship = json.dumps(ship)
 
         # Write the SQL query to get the information you want
-        db_cursor.execute("""
-        SELECT
-            s.id,
-            s.name,
-            s.hauler_id
-        FROM Ship s
-        WHERE s.id = ?
-        """, (pk,))
-        query_results = db_cursor.fetchone()
+        else:
+            db_cursor.execute("""
+            SELECT
+                s.id,
+                s.name,
+                s.hauler_id
+            FROM Ship s
+            WHERE s.id = ?
+            """, (pk,))
+            query_results = db_cursor.fetchone()
 
-        # Serialize Python list to JSON encoded string
-        dictionary_version_of_object = dict(query_results)
-        serialized_ship = json.dumps(dictionary_version_of_object)
+            # Serialize Python list to JSON encoded string
+            dictionary_version_of_object = dict(query_results)
+            serialized_ship = json.dumps(dictionary_version_of_object)
 
     return serialized_ship
 
