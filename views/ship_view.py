@@ -2,6 +2,7 @@ import sqlite3
 import json
 import requests
 import random
+from urllib.parse import parse_qs
 
 def update_ship(id, ship_data):
     with sqlite3.connect("./shipping.db") as conn:
@@ -37,18 +38,32 @@ def delete_ship(pk):
     return True if number_of_rows_deleted > 0 else False
 
 
-def list_ships():
+def list_ships(url):
     # Open a connection to the database
     with sqlite3.connect("./shipping.db") as conn:
         conn.row_factory = sqlite3.Row
         db_cursor = conn.cursor()
+        query_params = url['query_params']
+        expand_string = "_expand"
 
+        if expand_string in query_params:
+                # Write the SQL query to get the information you want
+            db_cursor.execute("""
+            SELECT
+                s.id,
+                s.name,
+                s.hauler_id,
+                h.id haulerId,
+                h.name haulerName,
+                h.dock_id
+            FROM Ship s
+            JOIN Hauler h
+                ON h.id = s.hauler_id
+            """)
         # Write the SQL query to get the information you want
-        db_cursor.execute("""
+        else: db_cursor.execute("""
         SELECT
-            s.id,
-            s.name,
-            s.hauler_id
+            *
         FROM Ship s
         """)
         query_results = db_cursor.fetchall()
