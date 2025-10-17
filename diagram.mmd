@@ -1,0 +1,18 @@
+sequenceDiagram
+    title Shipping Ships API
+    participant Client
+    participant Python
+    participant JSONServer
+    participant Database
+    Client->>Python:GET request to "/ships"
+    Python->>JSONServer:Run do_GET() method
+    JSONServer->>Database:Call list_ships() or retrieve_ship 
+    Database-->>JSONServer:Return ship data
+    JSONServer-->>Client:Here is the ship data
+
+    Client->>Python:PUT request to "/ships"
+    Python->>JSONServer:Run do_PUT() method
+    JSONServer->>Database:Call update_ship or "requested resource not found"
+    Database-->>JSONServer:Return response status
+    JSONServer-->>Client:Here is the response status
+
